@@ -3,6 +3,7 @@ import './App.css'
 import LoginPage from './pages/Login';
 import Homepage from './pages/Home';
 import RegisterPage from './pages/Register';
+import VideoPages from './pages/VideoPages';
 
 function App() {
   
@@ -10,8 +11,9 @@ function App() {
   return (
     <BrowserRouter>      
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage/>} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/videos" element={<VideoPages/>}/>
         <Route path="/" element={<Homepage />} />
       </Routes>
     </BrowserRouter>
