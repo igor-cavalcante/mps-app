@@ -5,6 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import axios from "axios"
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from "lucide-react";
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({

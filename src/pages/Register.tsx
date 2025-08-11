@@ -4,6 +4,8 @@ import type React from "react"
 import { useState } from "react"
 import axios from "axios"
 import { Eye, EyeOff, Lock, Mail, User, AlertCircle, CheckCircle } from "lucide-react"
+import { GoogleLogin } from '@react-oauth/google';
+
 
 interface FormData {
   firstName: string
