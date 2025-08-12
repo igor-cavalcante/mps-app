@@ -1,11 +1,10 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import axios from "axios"
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from "lucide-react";
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -22,66 +21,102 @@ export default function LoginPage() {
       ...prev,
       [name]: value,
     }))
-    // Limpa o erro quando o usuário começa a digitar
     if (error) setError("")
   }
 
+  // Handler para o LOGIN LOCAL (com email e senha)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError("")
 
     try {
-      // Substitua pela URL da sua API
-      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}${import.meta.env.VITE_AUTH_LOGIN}`, {
+      // CORREÇÃO: Chama a rota de login local
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/login`, {
         email: formData.email,
         password: formData.password,
       })
 
-      // Sucesso - você pode salvar o token, redirecionar, etc.
-      console.log("Login realizado com sucesso:", response.data)
+      const { token } = response.data;
+      localStorage.setItem("authToken", token);
+      window.location.href = "/dashboard"; // Redireciona para a área logada
 
-      // Exemplo: salvar token no localStorage
-      if (response.data.token && response.data.logged) {
-        localStorage.setItem("authToken", response.data.token)
-      }
-
-      // Redirecionar ou atualizar estado da aplicação
-      window.location.href = "/"
     } catch (err: any) {
-      // Tratamento de erros
       if (err.response?.data?.message) {
         setError(err.response.data.message)
-      } else if (err.response?.status === 401) {
-        setError("Email ou senha incorretos")
-      } else if (err.response?.status >= 500) {
-        setError("Erro interno do servidor. Tente novamente mais tarde.")
+      } else if (err.response?.status === 401 || err.response?.status === 404) {
+        setError("Email ou senha incorretos.")
       } else {
-        setError("Erro ao fazer login. Verifique sua conexão.")
+        setError("Erro ao fazer login. Verifique a sua conexão.")
       }
     } finally {
       setLoading(false)
     }
   }
 
+  // Handler para o LOGIN COM GOOGLE
+  const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
+    setLoading(true);
+    setError("");
+
+    if (!credentialResponse.credential) {
+        setError("Não foi possível obter a credencial do Google.");
+        setLoading(false);
+        return;
+    }
+
+    try {
+        // Chama a rota de LOGIN com Google
+        const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/login/google`, {
+            credential: credentialResponse.credential,
+        });
+
+        const { token } = res.data;
+        localStorage.setItem('authToken', token);
+        window.location.href = "/"; // Redireciona para a área logada
+
+    } catch (err: any) {
+        const message = err.response?.data?.message || "Falha no login com Google.";
+        setError(message);
+    } finally {
+        setLoading(false);
+    }
+  };
+
   const isFormValid = formData.email && formData.password
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
-        {/* Header */}
         <div className="text-center">
           <div className="mx-auto h-12 w-12 bg-indigo-600 rounded-full flex items-center justify-center">
             <Lock className="h-6 w-6 text-white" />
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">Faça seu login</h2>
-          <p className="mt-2 text-sm text-gray-600">Entre com suas credenciais para acessar sua conta</p>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">Faça o seu login</h2>
+          <p className="mt-2 text-sm text-gray-600">Entre com as suas credenciais para aceder à sua conta</p>
+        </div>
+        
+        <div className="px-6 sm:px-0 space-y-4">
+            <div className="flex justify-center">
+              <GoogleLogin
+                  onSuccess={handleGoogleLoginSuccess}
+                  onError={() => setError("Falha ao tentar login com Google.")}
+                  theme="outline"
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                  logo_alignment="left"
+              />
+            </div>
+            <div className="relative flex items-center">
+                <div className="flex-grow border-t border-gray-300"></div>
+                <span className="flex-shrink mx-4 text-gray-400 text-xs">OU</span>
+                <div className="flex-grow border-t border-gray-300"></div>
+            </div>
         </div>
 
-        {/* Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-2 space-y-6" onSubmit={handleSubmit}>
           <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
-            {/* Error Message */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-center space-x-2">
                 <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
@@ -89,11 +124,8 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-4 w-4 text-gray-400" />
@@ -112,11 +144,8 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Senha
-              </label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-4 w-4 text-gray-400" />
@@ -130,7 +159,7 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={handleInputChange}
                   className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="Sua senha"
+                  placeholder="A sua senha"
                 />
                 <button
                   type="button"
@@ -146,7 +175,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Remember me & Forgot password */}
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
@@ -159,7 +187,6 @@ export default function LoginPage() {
                   Lembrar de mim
                 </label>
               </div>
-
               <div className="text-sm">
                 <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
                   Esqueceu a senha?
@@ -167,16 +194,14 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={!isFormValid || loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
               {loading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Entrando...
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                 </div>
               ) : (
                 "Entrar"
@@ -184,7 +209,6 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Sign up link */}
           <div className="text-center">
             <p className="text-sm text-gray-600">
               Não tem uma conta?{" "}
