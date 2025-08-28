@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import {
-  BookOpen,
   ThumbsUp,
   ThumbsDown,
   Share2,
@@ -14,8 +13,6 @@ import {
   VolumeX,
   Maximize,
   Settings,
-  Users,
-  Star,
   Clock,
   ChevronDown,
   ChevronUp,
